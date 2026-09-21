@@ -683,7 +683,6 @@
             <button id="run-btn" class="btn-primary">▶ 実行 (Run)</button>
             <button id="step-btn" class="btn-secondary">🔍 詳細解析 (UTF-8)</button>
             <button id="share-btn" class="btn-secondary">🔗 共有リンク</button>
-            <button id="tweet-btn" class="btn-secondary">🐦 Xでシェア</button>
             <button id="clear-btn" class="btn-secondary">🗑 クリア</button>
           </div>
         </div>
@@ -924,10 +923,6 @@
         <input type="text" id="share-url-input" readonly spellcheck="false">
         <button class="btn-primary" id="copy-modal-url-btn">📋 コピー</button>
       </div>
-
-      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.2rem;">
-        <button class="btn-secondary" id="modal-tweet-btn">🐦 X (Twitter) でポスト</button>
-      </div>
     </div>
   </div>
 
@@ -954,17 +949,17 @@
 えっ！？？！あ？？！！
 うそ！？？あ！！？！！
 ぎゃあああ！！？あ！！！！？`,
-      konnichiwa: `わわわ？？？！！あっ！？？？！！！！！！？？！！？！わ！ひい？？
-あ？？？！ええっ！！？きゃー？？！！ぎゃあああ！！ひい！？！？！ひえっ！？！！？？
-助けて？？？助けて！ぎゃああ！！？？きゃー？きゃー！！！あっ！！！わあ？？！助けて？！？きゃー！？？
-ぎゃあああ？？きゃー？！わ！！？？あっ？わあ！あ！ええっ！！！！？？わあ！？なんだってー！！！うそ！？
-わわわ？？ぎゃああ？！わあ！！うそ？？もうだめだ？！！！！ぎゃあああ！！？？ぎゃああ！？！きゃー？？？？
-えっ？？うわああ？！！？！なんだってー！？あっ！？？？えっ！！！？！わわわ！？！？？！
-ひえっ？？？ぎゃああ！！？もうだめだ？？？ひい！！？ひえっ！？！？？！！！？わあ？ぎゃあああ！！
-うわああ！！？？ええっ？？！！うそ？？！ひえっ！！？あ！`,
-      kusa: `ぎゃああ？？？！！？？！もうだめだ？？？！ひい！？？？？？？？`,
-      sushi: `わあ？？？？！！？？！ひえっ？？？？！！？ええっ？？？？！！？？
-ぎゃあ？？？？！！？？！うわああ？？？？！！？？？？？？？！！`
+      konnichiwa: `ひい？？ひい？！きゃー！！ええっ？あっ？うわ？！！！助けて！！！？えっ？！！？！あっ！？ひえっ？
+うわ？？ぎゃああ？！！うわ！？あ？？！えっ！なんだってー！！！？！？！！？！！？わわわ？
+きゃー？？？！あ！ひえっ！？？きゃー？！！！！！！？？！？助けて！？！？？
+あっ？？うわああ？えっ！！！助けて？？わあ？！！！！あ！！？うわ？！？！！ええっ！！？
+うそ？わわわ？？！うそ！！？？？！！！あ！！！？？！ぎゃあああ？！わ？？？？
+きゃー？？？もうだめだ！！？！！なんだってー？！？？？！！あっ！助けて？！！？！？あ？！
+ぎゃあ？わあ？？！！なんだってー？？？？ぎゃあ！！？！？！？？うわ！！！？わあ？！ひえっ！
+ぎゃあ？？？！？うわ？？？？！？？わあ？？うわ！えっ！？！！！ええっ！！！？`,
+      kusa: `えっ？？ひい？！？！！！？きゃー！ぎゃあ！！えっ？うそ？！？ええっ？！！なんだってー！わ？！助けて！？`,
+      sushi: `うわ？？？ぎゃああ？！！！！？！！？？？？？？！助けて！！？あっ？！？わわわ？わわわ！もうだめだ？！！！ぎゃあああ？？
+うわ？助けて？？？！！うわ！！えっ？！ぎゃあああ！？？うわああ？？？？！助けて！！わわわ？？うわああ！？？！？ひえっ？もうだめだ？！？！`
     };
 
     // DOM Elements
@@ -976,7 +971,6 @@
     const stepBtn = document.getElementById('step-btn');
     const clearBtn = document.getElementById('clear-btn');
     const shareBtn = document.getElementById('share-btn');
-    const tweetBtn = document.getElementById('tweet-btn');
     const copyOutputBtn = document.getElementById('copy-output-btn');
     const inspectorCard = document.getElementById('inspector-card');
     const inspectorTbody = document.getElementById('inspector-tbody');
@@ -1165,7 +1159,6 @@
     const closeModalBtn = document.getElementById('close-modal-btn');
     const shareUrlInput = document.getElementById('share-url-input');
     const copyModalUrlBtn = document.getElementById('copy-modal-url-btn');
-    const modalTweetBtn = document.getElementById('modal-tweet-btn');
     const typeExactBtn = document.getElementById('type-exact-btn');
     const typeShortBtn = document.getElementById('type-short-btn');
     const statNumbers = document.getElementById('stat-numbers');
@@ -1239,25 +1232,6 @@
     copyModalUrlBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(shareUrlInput.value);
       showToast('共有URLをコピーしました！');
-    });
-
-    function shareToTwitter(urlToShare) {
-      const codePreview = codeInput.value.slice(0, 60).replace(/\n/g, ' ');
-      const output = Interrobang.run(codeInput.value);
-      const text = `難解プログラミング言語「Interrobang(‽)」で叫び声をコンパイル！\n出力:「${output.slice(0, 30)}」\n\n${codePreview}...\n`;
-      const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(urlToShare)}&hashtags=InterrobangLang,Esolang`;
-      window.open(tweetUrl, '_blank');
-    }
-
-    tweetBtn.addEventListener('click', async () => {
-      const code = codeInput.value;
-      const compressed = await Interrobang.compress(code);
-      const url = `${window.location.origin}${window.location.pathname}#z=${compressed}`;
-      shareToTwitter(url);
-    });
-
-    modalTweetBtn.addEventListener('click', () => {
-      shareToTwitter(shareUrlInput.value);
     });
 
     // Encoder Logic
