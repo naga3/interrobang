@@ -6,14 +6,13 @@ const { run, inspect, encode } = require('./interrobang');
 
 function printUsage() {
   console.log(`
-Interrobang (‽) - The Esoteric Screaming Programming Language (UTF-8 Supported)
+Interrobang (‽) - The Esoteric Programming Language (UTF-8 Supported)
 
 Usage:
   node cli.js <file.ib>              Run an Interrobang program
+  node cli.js -r, --reverse "text"   Reverse convert text to pure ！ and ？ (余計な文字なし)
+  node cli.js --encode "text"        Convert text to pure ！ and ？
   node cli.js --inspect <file.ib>    Inspect / disassemble with UTF-8 byte breakdown
-  node cli.js --encode "text"        Encode text into UTF-8 Interrobang scream code
-  node cli.js --encode-bytes "text"  Encode text with 1 byte (8-bit) per line
-  node cli.js --encode-pure "text"   Encode text into pure ! and ? symbols
   cat <file.ib> | node cli.js        Run code from stdin
 
 Options:
@@ -49,19 +48,7 @@ if (args[0] === '-v' || args[0] === '--version') {
   process.exit(0);
 }
 
-if (args[0] === '--encode' || args[0] === '-e') {
-  const text = args.slice(1).join(' ') || '';
-  console.log(encode(text, { encoding: 'utf-8', unit: 'char', mode: 'scream' }));
-  process.exit(0);
-}
-
-if (args[0] === '--encode-bytes') {
-  const text = args.slice(1).join(' ') || '';
-  console.log(encode(text, { encoding: 'utf-8', unit: 'byte', mode: 'scream' }));
-  process.exit(0);
-}
-
-if (args[0] === '--encode-pure') {
+if (args[0] === '--reverse' || args[0] === '-r' || args[0] === '--encode' || args[0] === '-e') {
   const text = args.slice(1).join(' ') || '';
   console.log(encode(text, { encoding: 'utf-8', unit: 'char', mode: 'pure' }));
   process.exit(0);

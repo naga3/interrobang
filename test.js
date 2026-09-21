@@ -53,7 +53,15 @@ assert.strictEqual(inspectResults[0].bytes.length, 3, 'Japanese "こ" must have 
 assert.strictEqual(inspectResults[0].bitLength, 24, 'Japanese "こ" must have 24 bits');
 console.log('✓ Inspector UTF-8 details test passed');
 
-// 7. Test URL compression and decompression
+// 7. Test Reverse conversion (only ！ and ？, no filler characters)
+const { reverse } = require('./interrobang');
+const revTarget = 'Hello こんにちは 🍣🍺';
+const revOutput = reverse(revTarget);
+assert.ok(/^[！？\n]+$/.test(revOutput), 'Reverse output must strictly contain only ！, ？, and newlines');
+assert.strictEqual(run(revOutput), revTarget, 'Reverse output must roundtrip decode to original text');
+console.log('✓ Reverse conversion (pure ！ and ？) test passed');
+
+// 8. Test URL compression and decompression
 (async () => {
   const { compress, decompress } = require('./interrobang');
   const compressed = await compress(helloWorldSource);
@@ -64,4 +72,5 @@ console.log('✓ Inspector UTF-8 details test passed');
 
   console.log('\nAll tests passed successfully! 🎉');
 })();
+
 

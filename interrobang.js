@@ -160,7 +160,7 @@ function inspect(source) {
  * @returns {string} Interrobang source code
  */
 function encode(text, options = {}) {
-  const mode = options.mode || 'scream';
+  const mode = options.mode || 'pure';
   const encoding = options.encoding || 'utf-8';
   const unit = options.unit || 'char';
   const fullWidth = options.fullWidth !== false;
@@ -322,12 +322,24 @@ async function decompress(b64url) {
   }
 }
 
+/**
+ * Reverse converts plain text into pure Interrobang code (only ！ and ？).
+ * No extra words (like "わ" or "あ").
+ * @param {string} text - Text to convert
+ * @param {Object} [options]
+ * @returns {string} Pure ！ and ？ code
+ */
+function reverse(text, options = {}) {
+  return encode(text, { ...options, mode: 'pure' });
+}
+
 // Export for both Node.js and Browser
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     run,
     inspect,
     encode,
+    reverse,
     compress,
     decompress,
     SCREAM_WORDS
@@ -338,9 +350,11 @@ if (typeof window !== 'undefined') {
     run,
     inspect,
     encode,
+    reverse,
     compress,
     decompress,
     SCREAM_WORDS
   };
 }
+
 

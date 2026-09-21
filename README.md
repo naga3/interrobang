@@ -18,8 +18,8 @@
 👉 **[https://naga3.github.io/interrobang/](https://naga3.github.io/interrobang/)**
 
 - **実行・逆アセンブラ**: コードの実行とビット／UTF-8バイトごとの詳細解析
-- **悲鳴エンコーダー**: 任意のテキスト（ASCII / 日本語 / 絵文字）から悲鳴コードを自動生成（1行1文字 / 1行1バイト / コードポイント対応）
-- **URL共有**: 生成したコードをDeflate圧縮してワンクリックで共有リンクに変換（約90%短縮）
+- **逆変換コンバーター**: 任意のテキスト（ASCII / 日本語 / 絵文字）から「！」「？」のみの純粋コードへ相互逆変換（余計な文字なし）
+- **URL共有**: 生成したコードをDeflate圧縮してワンクリックで共有リンクに変換（短縮URL対応）
 
 ---
 
@@ -105,16 +105,14 @@ node cli.js --inspect examples/hello.ib
 node cli.js --inspect examples/japan.ib
 ```
 
-### テキストから悲鳴コードを生成 (UTF-8)
+### テキストから逆変換（！と？のみ）
 ```bash
-# 1文字1行形式（推奨）
-node cli.js --encode "こんにちは世界！🎉"
+# テキストを純粋な「！」と「？」に逆変換（余計な文字なし）
+node cli.js -r "こんにちは世界！🍣🍺"
 
-# 1行1バイト形式（8-bit stream）
-node cli.js --encode-bytes "Hello"
-
-# 記号のみ（！と？のみ）
-node cli.js --encode-pure "草"
+# パイプで実行
+node cli.js -r "Hello World!" | node cli.js
+# => Hello World!
 ```
 
 ---
@@ -122,21 +120,20 @@ node cli.js --encode-pure "草"
 ## 📦 JavaScript / Node.js API
 
 ```javascript
-const { run, inspect, encode } = require('./interrobang');
+const { run, inspect, encode, reverse } = require('./interrobang');
 
 // 1. コードの実行（自動判別）
-const output = run(`わあ！？わ！！あ？！！！\nえっ！？？あ！！？！？`);
+const output = run(`！？！！？！！！\n！？？！！？！？`);
 console.log(output); // "He"
 
-// 2. 日本語・絵文字のUTF-8エンコード
-const screamCode = encode('こんにちは世界！🎉', {
-  encoding: 'utf-8',
-  unit: 'char', // 'char' (1文字1行) または 'byte' (1行1Byte)
-  mode: 'scream'
-});
+// 2. 文字列から「！」「？」への逆変換（余計な文字なし）
+const code = reverse('こんにちは世界！🍣', { fullWidth: true });
+console.log(code);
+// ？？？！！？？！！！！！！？？！！？！
+// ...
 
 // 3. UTF-8バイト詳細解析
-const details = inspect(screamCode);
+const details = inspect(code);
 console.log(details[0]);
 // {
 //   lineNumber: 1,
