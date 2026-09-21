@@ -1184,12 +1184,12 @@
       const output = Interrobang.run(code);
       currentShortUrl = `${window.location.origin}${window.location.pathname}#t=${encodeURIComponent(output)}`;
 
-      // Calculate stats
-      const rawUrlLen = `${window.location.origin}${window.location.pathname}#code=${encodeURIComponent(code)}`.length;
-      const compUrlLen = currentExactUrl.length;
-      const reduction = Math.max(0, Math.round((1 - compUrlLen / rawUrlLen) * 100));
+      // Calculate stats (comparing uncompressed URL-encoded size vs compressed size)
+      const rawEncodedLen = encodeURIComponent(code).length;
+      const compLen = compressed.length;
+      const reduction = Math.max(0, Math.round((1 - compLen / rawEncodedLen) * 100));
 
-      statNumbers.textContent = `${rawUrlLen.toLocaleString()} 文字 ➔ ${compUrlLen.toLocaleString()} 文字`;
+      statNumbers.textContent = `${rawEncodedLen.toLocaleString()} 文字 ➔ ${compLen.toLocaleString()} 文字`;
       statReduction.textContent = `-${reduction}% 削減`;
 
       shareUrlInput.value = currentExactUrl;
@@ -1317,18 +1317,6 @@
           const text = decodeURIComponent(hash.slice(3));
           const code = Interrobang.encode(text, { encoding: 'utf-8', unit: 'char', mode: 'scream' });
           codeInput.value = code;
-          updateCounter();
-          executeCode();
-        } catch {
-          codeInput.value = PRESETS.hello;
-          updateCounter();
-          executeCode();
-        }
-      } else if (hash.startsWith('#code=')) {
-        try {
-          const raw = hash.slice(6);
-          const decoded = decodeURIComponent(raw);
-          codeInput.value = decoded;
           updateCounter();
           executeCode();
         } catch {
