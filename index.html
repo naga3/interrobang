@@ -644,7 +644,7 @@
     <div class="header-actions">
       <div class="nav-tabs">
         <button class="nav-tab active" data-tab="runner">▶ 実行 (Runner)</button>
-        <button class="nav-tab" data-tab="encoder">🔄 逆変換 (Converter)</button>
+        <button class="nav-tab" data-tab="encoder">✨ 悲鳴生成 (Encoder)</button>
         <button class="nav-tab" data-tab="spec">📖 言語仕様 (Spec)</button>
       </div>
       <button class="btn-icon" id="sound-btn" title="効果音のON/OFF">🔊</button>
@@ -682,7 +682,6 @@
           <div class="controls-row">
             <button id="run-btn" class="btn-primary">▶ 実行 (Run)</button>
             <button id="step-btn" class="btn-secondary">🔍 詳細解析 (UTF-8)</button>
-            <button id="goto-reverse-btn" class="btn-secondary">🔄 文字から逆変換</button>
             <button id="share-btn" class="btn-secondary">🔗 共有リンク</button>
             <button id="clear-btn" class="btn-secondary">🗑 クリア</button>
           </div>
@@ -742,60 +741,79 @@
       </div>
     </section>
 
-    <!-- TAB 2: REVERSE CONVERTER -->
+    <!-- TAB 2: ENCODER -->
     <section id="tab-encoder" class="panel">
       <div class="grid-2col">
         <div class="card">
           <div class="card-title">
-            <span>✍️ 逆変換: 文字列を入力</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted);" id="encode-counter">0 文字</span>
-          </div>
-
-          <div class="presets-bar">
-            <span class="preset-label">サンプル入力:</span>
-            <button class="btn-chip" data-rev="hello">Hello World!</button>
-            <button class="btn-chip" data-rev="konnichiwa">こんにちは世界！</button>
-            <button class="btn-chip" data-rev="kusa">草</button>
-            <button class="btn-chip" data-rev="sushi">🍣🍺</button>
+            <span>✍️ テキストから悲鳴コードを生成</span>
           </div>
 
           <div class="form-group">
-            <label for="encode-input">変換したいテキスト（ASCII・日本語・絵文字対応）:</label>
-            <textarea id="encode-input" placeholder="ここに文章を入力してください（例: こんにちは、Hello、🍣🍺など）" style="height: 160px;">こんにちは世界！🎉</textarea>
+            <label for="encode-input">エンコードしたい文章 (日本語・ASCII・絵文字対応):</label>
+            <textarea id="encode-input" placeholder="ここにメッセージを入力（例: Hello! や 助けてください）" style="height: 120px;">こんにちは世界！🎉</textarea>
           </div>
 
           <div class="form-group">
-            <label>記号形式:</label>
+            <label>文字エンコーディング形式:</label>
             <div class="radio-group">
               <label class="radio-option">
-                <input type="radio" name="enc-width" value="full" checked>
-                全角（「！」と「？」）
+                <input type="radio" name="enc-format" value="utf8-char" checked>
+                🌐 <strong>UTF-8 (1行1文字)</strong> [推奨: 日本語24bit/絵文字32bit]
               </label>
               <label class="radio-option">
-                <input type="radio" name="enc-width" value="half">
-                半角（! と ?）
+                <input type="radio" name="enc-format" value="utf8-byte">
+                📦 <strong>UTF-8 バイトストリーム (1行1Byte)</strong> [厳格な8bit]
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="enc-format" value="codepoint">
+                🔢 <strong>Unicodeコードポイント</strong>
               </label>
             </div>
           </div>
 
+          <div class="form-group">
+            <label>悲鳴スタイル:</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="enc-mode" value="scream" checked>
+                😱 悲鳴・パニック (わあ、ぎゃあ等)
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="enc-mode" value="pure">
+                ⚡ シンプル記号 (！と？のみ)
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="enc-mode" value="stealth">
+                🕵️ 日常偽装 (まさか、嘘でしょ等)
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="enc-mode" value="custom">
+                🎨 カスタム単語
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" id="custom-words-group" style="display: none;">
+            <label for="custom-words-input">カスタム単語 (カンマ区切り):</label>
+            <input type="text" id="custom-words-input" value="ぬわー, ぐわー, ピカッ, なにっ" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;">
+          </div>
+
           <div class="controls-row">
-            <button id="generate-btn" class="btn-primary">🔄 「！」「？」に逆変換</button>
+            <button id="generate-btn" class="btn-primary">⚡ 悲鳴コードを生成</button>
           </div>
         </div>
 
         <div class="card">
           <div class="card-title">
-            <span>✨ 逆変換結果（！と？のみ / 1行1文字）</span>
+            <span>🎉 生成されたコード</span>
             <div style="display: flex; gap: 0.5rem;">
               <button class="btn-chip" id="transfer-to-runner-btn">▶ 実行画面へ送る</button>
               <button class="btn-chip" id="copy-generated-btn">📋 コピー</button>
             </div>
           </div>
 
-          <textarea id="encode-output" readonly placeholder="「！」「？」のみで構成されたInterrobangコードが出力されます..." style="height: 280px;"></textarea>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">
-            ※「わ」や「あ」などの余計な文字は含まれず、純粋な「！」（0）と「？」（1）のみを出力します。
-          </div>
+          <textarea id="encode-output" readonly placeholder="生成されたコードがここに表示されます..." style="height: 280px;"></textarea>
         </div>
       </div>
     </section>
@@ -965,6 +983,8 @@
     const generateBtn = document.getElementById('generate-btn');
     const transferToRunnerBtn = document.getElementById('transfer-to-runner-btn');
     const copyGeneratedBtn = document.getElementById('copy-generated-btn');
+    const customWordsGroup = document.getElementById('custom-words-group');
+    const customWordsInput = document.getElementById('custom-words-input');
 
     // Tabs
     const tabBtns = document.querySelectorAll('.nav-tab');
@@ -1214,63 +1234,46 @@
       showToast('共有URLをコピーしました！');
     });
 
-    // Reverse Converter Logic (文字 -> 「！」「？」)
-    const REV_SAMPLES = {
-      hello: 'Hello World!',
-      konnichiwa: 'こんにちは世界！',
-      kusa: '草',
-      sushi: '🍣🍺'
-    };
-
-    document.querySelectorAll('[data-rev]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const key = btn.dataset.rev;
-        if (REV_SAMPLES[key]) {
-          encodeInput.value = REV_SAMPLES[key];
-          doGenerate();
-        }
+    // Encoder Logic
+    document.querySelectorAll('input[name="enc-mode"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        customWordsGroup.style.display = (radio.value === 'custom') ? 'block' : 'none';
       });
-    });
-
-    document.querySelectorAll('input[name="enc-width"]').forEach(radio => {
-      radio.addEventListener('change', doGenerate);
-    });
-
-    encodeInput.addEventListener('input', () => {
-      const counter = document.getElementById('encode-counter');
-      if (counter) {
-        counter.textContent = `${Array.from(encodeInput.value).length} 文字`;
-      }
     });
 
     function doGenerate() {
       playBeep(650, 'triangle', 0.08);
       const text = encodeInput.value;
-      const isFull = (document.querySelector('input[name="enc-width"]:checked')?.value || 'full') === 'full';
+      const mode = document.querySelector('input[name="enc-mode"]:checked').value;
+      const format = document.querySelector('input[name="enc-format"]:checked').value;
       
-      const generated = Interrobang.reverse(text, {
-        encoding: 'utf-8',
-        unit: 'char',
-        fullWidth: isFull
+      let encoding = 'utf-8';
+      let unit = 'char';
+      if (format === 'utf8-byte') {
+        encoding = 'utf-8';
+        unit = 'byte';
+      } else if (format === 'codepoint') {
+        encoding = 'codepoint';
+        unit = 'char';
+      }
+
+      let customWords = null;
+      if (mode === 'custom') {
+        customWords = customWordsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      const generated = Interrobang.encode(text, {
+        encoding,
+        unit,
+        mode,
+        customWords,
+        fullWidth: true
       });
 
       encodeOutput.value = generated;
-      const counter = document.getElementById('encode-counter');
-      if (counter) {
-        counter.textContent = `${Array.from(text).length} 文字`;
-      }
     }
 
     generateBtn.addEventListener('click', doGenerate);
-
-    const gotoReverseBtn = document.getElementById('goto-reverse-btn');
-    if (gotoReverseBtn) {
-      gotoReverseBtn.addEventListener('click', () => {
-        const encTabBtn = document.querySelector('.nav-tab[data-tab="encoder"]');
-        if (encTabBtn) encTabBtn.click();
-        doGenerate();
-      });
-    }
 
     transferToRunnerBtn.addEventListener('click', () => {
       if (!encodeOutput.value) doGenerate();
@@ -1284,7 +1287,7 @@
     copyGeneratedBtn.addEventListener('click', () => {
       if (!encodeOutput.value) doGenerate();
       navigator.clipboard.writeText(encodeOutput.value);
-      showToast('逆変換コードをコピーしました！');
+      showToast('生成コードをコピーしました！');
     });
 
     function escapeHtml(str) {
@@ -1312,7 +1315,7 @@
       } else if (hash.startsWith('#t=')) {
         try {
           const text = decodeURIComponent(hash.slice(3));
-          const code = Interrobang.reverse(text, { encoding: 'utf-8', unit: 'char' });
+          const code = Interrobang.encode(text, { encoding: 'utf-8', unit: 'char', mode: 'scream' });
           codeInput.value = code;
           updateCounter();
           executeCode();
