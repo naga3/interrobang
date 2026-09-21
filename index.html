@@ -523,9 +523,107 @@
       pointer-events: none;
       z-index: 999;
     }
-    .toast.show {
-      opacity: 1;
-      transform: translateY(0);
+    /* Share Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal-overlay.active {
+      display: flex;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      max-width: 580px;
+      width: 100%;
+      padding: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .compression-stat-box {
+      background: rgba(39, 201, 63, 0.1);
+      border: 1px solid rgba(39, 201, 63, 0.3);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .stat-badge {
+      background: #238636;
+      color: white;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .url-box {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .url-box input {
+      flex: 1;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+    .url-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .share-type-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: -0.3rem;
+    }
+    .share-type-btn {
+      font-size: 0.8rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .share-type-btn.active {
+      background: rgba(88, 166, 255, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
     }
   </style>
 </head>
@@ -801,6 +899,38 @@
 
   <div id="toast" class="toast">コピーしました！</div>
 
+  <!-- Share Modal -->
+  <div class="modal-overlay" id="share-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🔗 共有URL（圧縮済み）</div>
+        <button class="btn-icon" id="close-modal-btn">✕</button>
+      </div>
+
+      <div class="compression-stat-box" id="compression-stat-box">
+        <div>
+          <div class="stat-label">URL 圧縮効果 (Deflate-Raw):</div>
+          <div style="font-size: 0.95rem; font-weight: 600;" id="stat-numbers">0文字 ➔ 0文字</div>
+        </div>
+        <div class="stat-badge" id="stat-reduction">-0% 削減</div>
+      </div>
+
+      <div class="share-type-tabs">
+        <button class="share-type-btn active" id="type-exact-btn" title="書いた叫び声を1文字も変えずに完全保存">🗜️ 完全コード圧縮 (#z=)</button>
+        <button class="share-type-btn" id="type-short-btn" title="出力メッセージから最短URLを生成">⚡ 最短メッセージURL (#t=)</button>
+      </div>
+
+      <div class="url-box">
+        <input type="text" id="share-url-input" readonly spellcheck="false">
+        <button class="btn-primary" id="copy-modal-url-btn">📋 コピー</button>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.2rem;">
+        <button class="btn-secondary" id="modal-tweet-btn">🐦 X (Twitter) でポスト</button>
+      </div>
+    </div>
+  </div>
+
   <footer>
     <p>
       <strong>Interrobang (‽)</strong> — Designed & Developed with ❤️ by <a href="https://github.com/naga3" target="_blank">naga3</a> | 
@@ -1030,22 +1160,104 @@
       showToast('出力をクリップボードにコピーしました！');
     });
 
-    // Share URL
-    shareBtn.addEventListener('click', () => {
+    // Share Modal Elements & State
+    const shareModal = document.getElementById('share-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const shareUrlInput = document.getElementById('share-url-input');
+    const copyModalUrlBtn = document.getElementById('copy-modal-url-btn');
+    const modalTweetBtn = document.getElementById('modal-tweet-btn');
+    const typeExactBtn = document.getElementById('type-exact-btn');
+    const typeShortBtn = document.getElementById('type-short-btn');
+    const statNumbers = document.getElementById('stat-numbers');
+    const statReduction = document.getElementById('stat-reduction');
+
+    let currentExactUrl = '';
+    let currentShortUrl = '';
+
+    async function openShareModal() {
       const code = codeInput.value;
-      const encoded = encodeURIComponent(code);
-      const url = `${window.location.origin}${window.location.pathname}#code=${encoded}`;
-      navigator.clipboard.writeText(url);
-      showToast('共有URLをコピーしました！🔗');
+      if (!code.trim()) {
+        showToast('コードを入力してください');
+        return;
+      }
+
+      playBeep(600, 'sine', 0.05);
+
+      // Generate compressed exact code URL
+      const compressed = await Interrobang.compress(code);
+      currentExactUrl = `${window.location.origin}${window.location.pathname}#z=${compressed}`;
+
+      // Generate shortest message URL
+      const output = Interrobang.run(code);
+      currentShortUrl = `${window.location.origin}${window.location.pathname}#t=${encodeURIComponent(output)}`;
+
+      // Calculate stats
+      const rawUrlLen = `${window.location.origin}${window.location.pathname}#code=${encodeURIComponent(code)}`.length;
+      const compUrlLen = currentExactUrl.length;
+      const reduction = Math.max(0, Math.round((1 - compUrlLen / rawUrlLen) * 100));
+
+      statNumbers.textContent = `${rawUrlLen.toLocaleString()} 文字 ➔ ${compUrlLen.toLocaleString()} 文字`;
+      statReduction.textContent = `-${reduction}% 削減`;
+
+      shareUrlInput.value = currentExactUrl;
+      typeExactBtn.classList.add('active');
+      typeShortBtn.classList.remove('active');
+
+      shareModal.classList.add('active');
+
+      // Copy automatically
+      navigator.clipboard.writeText(currentExactUrl);
+      showToast(`共有URLを ${reduction}% 圧縮してコピーしました！🔗`);
+    }
+
+    shareBtn.addEventListener('click', openShareModal);
+
+    closeModalBtn.addEventListener('click', () => {
+      shareModal.classList.remove('active');
+    });
+    shareModal.addEventListener('click', (e) => {
+      if (e.target === shareModal) shareModal.classList.remove('active');
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && shareModal.classList.contains('active')) {
+        shareModal.classList.remove('active');
+      }
     });
 
-    // Tweet / X Share
-    tweetBtn.addEventListener('click', () => {
-      const codePreview = codeInput.value.slice(0, 100);
-      const url = window.location.href;
-      const text = `難解プログラミング言語「Interrobang(‽)」でUTF-8の叫び声をコンパイルしました！\n\n${codePreview}\n...\n`;
-      const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}&hashtags=InterrobangLang,Esolang,UTF8`;
+    typeExactBtn.addEventListener('click', () => {
+      typeExactBtn.classList.add('active');
+      typeShortBtn.classList.remove('active');
+      shareUrlInput.value = currentExactUrl;
+    });
+
+    typeShortBtn.addEventListener('click', () => {
+      typeShortBtn.classList.add('active');
+      typeExactBtn.classList.remove('active');
+      shareUrlInput.value = currentShortUrl;
+    });
+
+    copyModalUrlBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(shareUrlInput.value);
+      showToast('共有URLをコピーしました！');
+    });
+
+    function shareToTwitter(urlToShare) {
+      const codePreview = codeInput.value.slice(0, 60).replace(/\n/g, ' ');
+      const output = Interrobang.run(codeInput.value);
+      const text = `難解プログラミング言語「Interrobang(‽)」で叫び声をコンパイル！\n出力:「${output.slice(0, 30)}」\n\n${codePreview}...\n`;
+      const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(urlToShare)}&hashtags=InterrobangLang,Esolang`;
       window.open(tweetUrl, '_blank');
+    }
+
+    tweetBtn.addEventListener('click', async () => {
+      const code = codeInput.value;
+      const compressed = await Interrobang.compress(code);
+      const url = `${window.location.origin}${window.location.pathname}#z=${compressed}`;
+      shareToTwitter(url);
+    });
+
+    modalTweetBtn.addEventListener('click', () => {
+      shareToTwitter(shareUrlInput.value);
     });
 
     // Encoder Logic
@@ -1112,10 +1324,35 @@
     }
 
     // Initial load: parse URL hash
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.location.hash.startsWith('#code=')) {
+    window.addEventListener('DOMContentLoaded', async () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#z=')) {
         try {
-          const raw = window.location.hash.slice(6);
+          const raw = hash.slice(3);
+          const decoded = await Interrobang.decompress(raw);
+          codeInput.value = decoded;
+          updateCounter();
+          executeCode();
+        } catch {
+          codeInput.value = PRESETS.hello;
+          updateCounter();
+          executeCode();
+        }
+      } else if (hash.startsWith('#t=')) {
+        try {
+          const text = decodeURIComponent(hash.slice(3));
+          const code = Interrobang.encode(text, { encoding: 'utf-8', unit: 'char', mode: 'scream' });
+          codeInput.value = code;
+          updateCounter();
+          executeCode();
+        } catch {
+          codeInput.value = PRESETS.hello;
+          updateCounter();
+          executeCode();
+        }
+      } else if (hash.startsWith('#code=')) {
+        try {
+          const raw = hash.slice(6);
           const decoded = decodeURIComponent(raw);
           codeInput.value = decoded;
           updateCounter();
@@ -1135,3 +1372,4 @@
   </script>
 </body>
 </html>
+

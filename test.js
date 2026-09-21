@@ -53,4 +53,15 @@ assert.strictEqual(inspectResults[0].bytes.length, 3, 'Japanese "こ" must have 
 assert.strictEqual(inspectResults[0].bitLength, 24, 'Japanese "こ" must have 24 bits');
 console.log('✓ Inspector UTF-8 details test passed');
 
-console.log('\nAll tests passed successfully! 🎉');
+// 7. Test URL compression and decompression
+(async () => {
+  const { compress, decompress } = require('./interrobang');
+  const compressed = await compress(helloWorldSource);
+  const decompressed = await decompress(compressed);
+  assert.strictEqual(decompressed, helloWorldSource, 'Compressed source must decompress identically');
+  assert(compressed.length < helloWorldSource.length * 2, 'Compression must be compact');
+  console.log(`✓ Compression test passed (${helloWorldSource.length} chars -> ${compressed.length} chars, ratio: ${(compressed.length / helloWorldSource.length).toFixed(2)})`);
+
+  console.log('\nAll tests passed successfully! 🎉');
+})();
+

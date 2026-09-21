@@ -267,12 +267,69 @@ function formatStealthLine(symbols) {
   return line;
 }
 
+/**
+ * Compresses an Interrobang program into a compact URL-safe Base64 string.
+ * Uses native CompressionStream (deflate-raw) + base64url.
+ * @param {string} text
+ * @returns {Promise<string>} Base64URL compressed string
+ */
+async function compress(text) {
+  if (typeof CompressionStream === 'undefined') {
+    return encodeURIComponent(text);
+  }
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  const buffer = await new Response(stream).arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+/**
+ * Decompresses a Base64URL string back into Interrobang source code.
+ * @param {string} b64url
+ * @returns {Promise<string>}
+ */
+async function decompress(b64url) {
+  if (!b64url) return '';
+  if (typeof DecompressionStream === 'undefined') {
+    return decodeURIComponent(b64url);
+  }
+  try {
+    let base64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return await new Response(stream).text();
+  } catch (err) {
+    console.warn('Decompression failed, fallback to raw decode:', err);
+    try {
+      return decodeURIComponent(b64url);
+    } catch {
+      return '';
+    }
+  }
+}
+
 // Export for both Node.js and Browser
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     run,
     inspect,
     encode,
+    compress,
+    decompress,
     SCREAM_WORDS
   };
 }
@@ -281,6 +338,9 @@ if (typeof window !== 'undefined') {
     run,
     inspect,
     encode,
+    compress,
+    decompress,
     SCREAM_WORDS
   };
 }
+
