@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interrobang (‽) - びっくりはてな言語 | Esoteric Programming Language</title>
+  <meta name="description" content="！は0、？は1、叫び声で動く難解プログラミング言語「Interrobang (‽)」のWebプレイグラウンド">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>‽</text></svg>">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --primary: #f0883e;
+      --primary-hover: #d97706;
+      --accent: #58a6ff;
+      --bit0: #58a6ff; /* ！ = 0 (cyan/blue) */
+      --bit1: #f778ba; /* ？ = 1 (magenta/pink) */
+      --term-bg: #090d13;
+      --term-text: #7ee787;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      --radius: 10px;
+    }
+
+    [data-theme="light"] {
+      --bg: #f6f8fa;
+      --card-bg: #ffffff;
+      --border: #d0d7de;
+      --text: #24292f;
+      --text-muted: #57606a;
+      --primary: #e36209;
+      --primary-hover: #bf4d04;
+      --accent: #0969da;
+      --bit0: #0969da;
+      --bit1: #d12480;
+      --term-bg: #1e242c;
+      --term-text: #56d364;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background-color: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .brand-icon {
+      font-size: 2.2rem;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--bit0), var(--bit1));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 900;
+      filter: drop-shadow(0 0 10px rgba(247, 120, 186, 0.4));
+    }
+
+    .brand-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .brand-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .nav-tabs {
+      display: flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .nav-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      font-size: 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .nav-tab.active {
+      background: var(--card-bg);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .btn-icon {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .btn-icon:hover {
+      background: var(--border);
+    }
+
+    main {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Grid Layout for Editor / Output */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 860px) {
+      .grid-2col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .presets-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .preset-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .editor-container {
+      position: relative;
+    }
+
+    textarea {
+      width: 100%;
+      height: 280px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.8rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: #fff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(240, 136, 62, 0.3);
+      transition: all 0.15s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(240, 136, 62, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    /* Terminal Output */
+    .terminal {
+      background: var(--term-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-height: 280px;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      color: var(--term-text);
+      font-size: 1.05rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .terminal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.8rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .term-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .term-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .term-dot.r { background: #ff5f56; }
+    .term-dot.y { background: #ffbd2e; }
+    .term-dot.g { background: #27c93f; }
+
+    /* Inspector Table */
+    .inspector-section {
+      margin-top: 1.5rem;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      font-family: var(--font-mono);
+    }
+
+    th, td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pill-bit {
+      display: inline-block;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+    .pill-0 {
+      background: rgba(88, 166, 255, 0.15);
+      color: var(--bit0);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+    }
+    .pill-1 {
+      background: rgba(247, 120, 186, 0.15);
+      color: var(--bit1);
+      border: 1px solid rgba(247, 120, 186, 0.3);
+    }
+
+    .highlight-char {
+      font-weight: bold;
+      color: #7ee787;
+      font-size: 1.1rem;
+    }
+
+    /* Generator styles */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    /* Spec styles */
+    .spec-content {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .spec-content h2 {
+      color: var(--primary);
+      margin: 1.5rem 0 0.8rem;
+      font-size: 1.3rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.4rem;
+    }
+    .spec-content h2:first-child {
+      margin-top: 0;
+    }
+
+    .spec-content ul {
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .spec-content li {
+      margin-bottom: 0.4rem;
+    }
+
+    .spec-table {
+      margin: 1rem 0;
+    }
+
+    footer {
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 3rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #238636;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">‽</div>
+      <div>
+        <div class="brand-title">Interrobang (‽)</div>
+        <div class="brand-subtitle">！は0、？は1、叫び声で動く難解プログラミング言語</div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div class="nav-tabs">
+        <button class="nav-tab active" data-tab="runner">▶ 実行 (Runner)</button>
+        <button class="nav-tab" data-tab="encoder">✨ 悲鳴生成 (Encoder)</button>
+        <button class="nav-tab" data-tab="spec">📖 言語仕様 (Spec)</button>
+      </div>
+      <button class="btn-icon" id="sound-btn" title="効果音のON/OFF">🔊</button>
+      <button class="btn-icon" id="theme-btn" title="テーマ切り替え">🌙</button>
+      <a href="https://github.com/naga3/interrobang" target="_blank" class="btn-icon" title="GitHub Repository">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: RUNNER & INSPECTOR -->
+    <section id="tab-runner" class="panel active">
+      <div class="grid-2col">
+        <!-- Editor Card -->
+        <div class="card">
+          <div class="card-title">
+            <span>💻 Interrobang ソースコード</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);" id="line-counter">0 行</span>
+          </div>
+
+          <div class="presets-bar">
+            <span class="preset-label">サンプル:</span>
+            <button class="btn-chip" data-preset="hello">🌟 Hello World!</button>
+            <button class="btn-chip" data-preset="konnichiwa">💬 こんにちは世界！</button>
+            <button class="btn-chip" data-preset="kusa">🌿 草</button>
+            <button class="btn-chip" data-preset="sos">🆘 SOS</button>
+          </div>
+
+          <div class="editor-container">
+            <textarea id="code-input" spellcheck="false" placeholder="ここに悲鳴コードを入力してください&#10;例:&#10;わあ！？わ！！あ？！！！&#10;えっ！？？あ！！？！？"></textarea>
+          </div>
+
+          <div class="controls-row">
+            <button id="run-btn" class="btn-primary">▶ 実行 (Run)</button>
+            <button id="step-btn" class="btn-secondary">🔍 詳細解析</button>
+            <button id="share-btn" class="btn-secondary">🔗 共有リンク</button>
+            <button id="tweet-btn" class="btn-secondary">🐦 Xでシェア</button>
+            <button id="clear-btn" class="btn-secondary">🗑 クリア</button>
+          </div>
+        </div>
+
+        <!-- Terminal Output Card -->
+        <div class="card">
+          <div class="card-title">
+            <span>📟 実行結果 (Standard Output)</span>
+            <button class="btn-chip" id="copy-output-btn">📋 出力をコピー</button>
+          </div>
+
+          <div class="terminal" id="terminal-screen">
+            <div class="terminal-header">
+              <div class="term-dots">
+                <span class="term-dot r"></span>
+                <span class="term-dot y"></span>
+                <span class="term-dot g"></span>
+              </div>
+              <span>output.txt</span>
+            </div>
+            <div id="output-content" style="color: #7ee787;">[準備完了] 「▶ 実行」ボタンを押すと結果が表示されます。</div>
+          </div>
+
+          <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span id="output-status">待機中</span>
+            <span>「！」= 0 (青) / 「？」= 1 (赤)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inspector Section -->
+      <div class="inspector-section card" id="inspector-card" style="display: none;">
+        <div class="card-title">
+          <span>🔬 ビット逆アセンブラ / 行別詳細解析</span>
+          <button class="btn-chip" id="close-inspector-btn">✕ 閉じる</button>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          各行から抽出されたビット列、文字コード（ASCII / Unicode）、および出力文字の内訳です。
+        </p>
+        <div class="table-container">
+          <table id="inspector-table">
+            <thead>
+              <tr>
+                <th>行</th>
+                <th>抽出ビット列 (0 / 1)</th>
+                <th>ビット長</th>
+                <th>コードポイント</th>
+                <th>出力文字</th>
+                <th>元ソース行</th>
+              </tr>
+            </thead>
+            <tbody id="inspector-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: ENCODER -->
+    <section id="tab-encoder" class="panel">
+      <div class="grid-2col">
+        <div class="card">
+          <div class="card-title">
+            <span>✍️ テキストから悲鳴コードを生成</span>
+          </div>
+
+          <div class="form-group">
+            <label for="encode-input">エンコードしたい文章 (ASCII / 日本語 / 絵文字対応):</label>
+            <textarea id="encode-input" placeholder="ここにメッセージを入力（例: Hello! や 助けてください）" style="height: 140px;">こんにちは世界！🎉</textarea>
+          </div>
+
+          <div class="form-group">
+            <label>悲鳴スタイル:</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input type="radio" name="enc-mode" value="scream" checked>
+                😱 悲鳴・パニック (わあ、ぎゃあ等)
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="enc-mode" value="pure">
+                ⚡ シンプル記号 (！と？のみ)
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="enc-mode" value="stealth">
+                🕵️ 日常偽装 (まさか、嘘でしょ等)
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="enc-mode" value="custom">
+                🎨 カスタム単語
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" id="custom-words-group" style="display: none;">
+            <label for="custom-words-input">カスタム単語 (カンマ区切り):</label>
+            <input type="text" id="custom-words-input" value="ぬわー, ぐわー, ピカッ, なにっ" style="background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;">
+          </div>
+
+          <div class="controls-row">
+            <button id="generate-btn" class="btn-primary">⚡ 悲鳴コードを生成</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>🎉 生成されたコード</span>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-chip" id="transfer-to-runner-btn">▶ 実行画面へ送る</button>
+              <button class="btn-chip" id="copy-generated-btn">📋 コピー</button>
+            </div>
+          </div>
+
+          <textarea id="encode-output" readonly placeholder="生成されたコードがここに表示されます..." style="height: 280px;"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: SPECIFICATION -->
+    <section id="tab-spec" class="panel">
+      <div class="spec-content">
+        <h2>‽ Interrobang (びっくりはてな言語) 仕様書</h2>
+        <p>
+          <strong>Interrobang (‽)</strong> は、文章中の感嘆符（！）と疑問符（？）のみを抽出し、その他の文字を完全に無視する難解プログラミング言語（Esoteric Language / 怪文書生成系言語）です。
+        </p>
+
+        <h2>1. 構文規則 (Syntax Rules)</h2>
+        <ul>
+          <li><code>！</code> または <code>!</code>（全角・半角）は <strong>0</strong> を表します。</li>
+          <li><code>？</code> または <code>?</code>（全角・半角）は <strong>1</strong> を表します。</li>
+          <li>上記以外の文字（ひらがな、カタカナ、漢字、アルファベット、空白など）は <strong>すべて無視</strong> されます。</li>
+        </ul>
+
+        <h2>2. 実行モデル (Execution Model)</h2>
+        <ul>
+          <li>プログラムは行（改行）ごとに1ステップずつ処理されます。</li>
+          <li>各行に含まれる <code>！</code> と <code>？</code> を左から順に取り出して2進数ビット列を構成します。</li>
+          <li>ビット列が存在する場合、その数値を <strong>Unicodeコードポイント</strong>（ASCIIコード含む）として解釈し、対応する <strong>1文字を出力</strong> します。</li>
+          <li>記号を含まない行（コメントや空行）は無視されます。</li>
+          <li>改行文字を出力したい場合は、文字コード <code>10</code> (<code>00001010</code>) をエンコードした行を記述します。</li>
+        </ul>
+
+        <h2>3. サンプル「Hello World!」の解剖表</h2>
+        <div class="table-container spec-table">
+          <table>
+            <thead>
+              <tr>
+                <th>行</th>
+                <th>コード例 (叫び声)</th>
+                <th>抽出記号</th>
+                <th>2進数</th>
+                <th>文字</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td><code>わあ！？わ！！あ？！！！</code></td><td><code>！？！！？！！！</code></td><td><code>01001000</code></td><td><strong>H</strong></td></tr>
+              <tr><td>2</td><td><code>えっ！？？あ！！？！？</code></td><td><code>！？？！！？！？</code></td><td><code>01100101</code></td><td><strong>e</strong></td></tr>
+              <tr><td>3</td><td><code>ぎゃあ！？？！あ？？！！</code></td><td><code>！？？！？？！！</code></td><td><code>01101100</code></td><td><strong>l</strong></td></tr>
+              <tr><td>4</td><td><code>わわわ！？？あ！？？！！</code></td><td><code>！？？！？？！！</code></td><td><code>01101100</code></td><td><strong>l</strong></td></tr>
+              <tr><td>5</td><td><code>あっ！？？わ！？？？？</code></td><td><code>！？？！？？？？</code></td><td><code>01101111</code></td><td><strong>o</strong></td></tr>
+              <tr><td>6</td><td><code>ええっ！！？あ！！！！！</code></td><td><code>！！？！！！！！</code></td><td><code>00100000</code></td><td><em>(空白)</em></td></tr>
+              <tr><td>7</td><td><code>うわ！？！？あ！？？？</code></td><td><code>！？！？！？？？</code></td><td><code>01010111</code></td><td><strong>W</strong></td></tr>
+              <tr><td>8</td><td><code>わあ！？？あ！？？？？</code></td><td><code>！？？！？？？？</code></td><td><code>01101111</code></td><td><strong>o</strong></td></tr>
+              <tr><td>9</td><td><code>ぎゃああ！？？？あ！！？！</code></td><td><code>！？？？！１？！</code></td><td><code>01110010</code></td><td><strong>r</strong></td></tr>
+              <tr><td>10</td><td><code>えっ！？？！あ？？！！</code></td><td><code>！？？！？？！！</code></td><td><code>01101100</code></td><td><strong>l</strong></td></tr>
+              <tr><td>11</td><td><code>うそ！？？あ！！？！！</code></td><td><code>！？？！！？！！</code></td><td><code>01100100</code></td><td><strong>d</strong></td></tr>
+              <tr><td>12</td><td><code>ぎゃあああ！！？あ！！！！？</code></td><td><code>！！？！！！！？</code></td><td><code>00100001</code></td><td><strong>!</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>4. 名称の由来</h2>
+        <p>
+          「<strong>Interrobang（インテロバング）</strong>」とは、感嘆符（！）と疑問符（？）を重ね合わせたタイポグラフィ記号「‽」のことです。驚きと疑問を同時に叫ぶ感情の爆発を表現する文字として、1962年に名付けられました。
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast">コピーしました！</div>
+
+  <footer>
+    <p>
+      <strong>Interrobang (‽)</strong> — Designed & Developed with ❤️ by <a href="https://github.com/naga3" target="_blank">naga3</a> | 
+      <a href="https://github.com/naga3/interrobang" target="_blank">GitHub Repository</a>
+    </p>
+  </footer>
+
+  <script src="interrobang.js"></script>
+  <script>
+    // Presets
+    const PRESETS = {
+      hello: `わあ！？わ！！あ？！！！
+えっ！？？あ！！？！？
+ぎゃあ！？？！あ？？！！
+わわわ！？？あ！？？！！
+あっ！？？わ！？？？？
+ええっ！！？あ！！！！！
+うわ！？！？あ！？？？
+わあ！？？あ！？？？？
+ぎゃああ！？？？あ！！？！
+えっ！？？！あ？？！！
+うそ！？？あ！！？！！
+ぎゃあああ！！？あ！！！！？`,
+      konnichiwa: `わあ？？？？！！？？！？！？？
+ぎゃあ？？？？！！？？！？？！！
+ええっ？？？？！！？？！？！？！
+うわ？？？？！！？？！？？？！
+あっ？？？？！！？？！？？？？
+ひえっ？？？？！！？？！？？！？？
+ぎゃああ？？？？！！？？！？？！！
+えっ！！？！！！！？`,
+      kusa: `ぎゃあ？？？？！！？？！？？？？？？？`,
+      sos: `わあ！？？！？？！
+うわ！？？！？？？？
+えっ！？？！？？！`
+    };
+
+    // DOM Elements
+    const codeInput = document.getElementById('code-input');
+    const outputContent = document.getElementById('output-content');
+    const outputStatus = document.getElementById('output-status');
+    const lineCounter = document.getElementById('line-counter');
+    const runBtn = document.getElementById('run-btn');
+    const stepBtn = document.getElementById('step-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const shareBtn = document.getElementById('share-btn');
+    const tweetBtn = document.getElementById('tweet-btn');
+    const copyOutputBtn = document.getElementById('copy-output-btn');
+    const inspectorCard = document.getElementById('inspector-card');
+    const inspectorTbody = document.getElementById('inspector-tbody');
+    const closeInspectorBtn = document.getElementById('close-inspector-btn');
+    const toast = document.getElementById('toast');
+
+    // Encoder elements
+    const encodeInput = document.getElementById('encode-input');
+    const encodeOutput = document.getElementById('encode-output');
+    const generateBtn = document.getElementById('generate-btn');
+    const transferToRunnerBtn = document.getElementById('transfer-to-runner-btn');
+    const copyGeneratedBtn = document.getElementById('copy-generated-btn');
+    const customWordsGroup = document.getElementById('custom-words-group');
+    const customWordsInput = document.getElementById('custom-words-input');
+
+    // Tabs
+    const tabBtns = document.querySelectorAll('.nav-tab');
+    const panels = document.querySelectorAll('.panel');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        tabBtns.forEach(b => b.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${target}`).classList.add('active');
+      });
+    });
+
+    // Audio SFX using Web Audio API
+    let soundEnabled = true;
+    let audioCtx = null;
+    function playBeep(freq = 440, type = 'sine', duration = 0.05) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch {}
+    }
+
+    const soundBtn = document.getElementById('sound-btn');
+    soundBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
+      showToast(soundEnabled ? '効果音をONにしました' : '効果音をOFFにしました');
+    });
+
+    // Theme Toggle
+    const themeBtn = document.getElementById('theme-btn');
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      themeBtn.textContent = next === 'dark' ? '🌙' : '☀️';
+      localStorage.setItem('ib-theme', next);
+    });
+    if (localStorage.getItem('ib-theme')) {
+      const saved = localStorage.getItem('ib-theme');
+      document.documentElement.setAttribute('data-theme', saved);
+      themeBtn.textContent = saved === 'dark' ? '🌙' : '☀️';
+    }
+
+    // Line counter update
+    function updateCounter() {
+      const lines = codeInput.value.split('\n').length;
+      lineCounter.textContent = `${lines} 行`;
+    }
+    codeInput.addEventListener('input', updateCounter);
+
+    // Presets
+    document.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        playBeep(600, 'triangle');
+        const key = btn.dataset.preset;
+        if (PRESETS[key]) {
+          codeInput.value = PRESETS[key];
+          updateCounter();
+          executeCode();
+        }
+      });
+    });
+
+    // Toast
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // Runner Execution
+    function executeCode() {
+      playBeep(520, 'sine', 0.08);
+      const code = codeInput.value;
+      if (!code.trim()) {
+        outputContent.textContent = '(コードが空です)';
+        outputStatus.textContent = '実行完了 (0文字)';
+        return;
+      }
+
+      const details = Interrobang.inspect(code);
+      const output = details.map(d => d.char).join('');
+
+      outputContent.textContent = output || '(出力可能な文字がありませんでした)';
+      outputStatus.textContent = `正常終了 (${output.length} 文字出力)`;
+
+      renderInspector(details);
+    }
+
+    runBtn.addEventListener('click', executeCode);
+
+    // Inspector Rendering
+    function renderInspector(details) {
+      inspectorTbody.innerHTML = '';
+      if (!details || details.length === 0) {
+        inspectorTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">解析データがありません</td></tr>';
+        return;
+      }
+
+      details.forEach(item => {
+        const tr = document.createElement('tr');
+
+        // Format bits pills
+        const bitsHtml = Array.from(item.bits).map(b => 
+          `<span class="pill-bit ${b === '0' ? 'pill-0' : 'pill-1'}">${b}</span>`
+        ).join('');
+
+        const codeHex = item.codePoint !== null ? '0x' + item.codePoint.toString(16).toUpperCase() : 'N/A';
+        const displayChar = item.char === '\n' ? '\\n (改行)' : (item.char === ' ' ? '(空白)' : item.char);
+
+        tr.innerHTML = `
+          <td>${item.lineNumber}</td>
+          <td>${bitsHtml}</td>
+          <td>${item.bits.length} bit</td>
+          <td><code>${codeHex}</code> (${item.codePoint})</td>
+          <td><span class="highlight-char">${escapeHtml(displayChar)}</span></td>
+          <td style="color: var(--text-muted); font-size: 0.82rem;">${escapeHtml(item.raw)}</td>
+        `;
+        inspectorTbody.appendChild(tr);
+      });
+    }
+
+    stepBtn.addEventListener('click', () => {
+      executeCode();
+      inspectorCard.style.display = 'block';
+      inspectorCard.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    closeInspectorBtn.addEventListener('click', () => {
+      inspectorCard.style.display = 'none';
+    });
+
+    clearBtn.addEventListener('click', () => {
+      codeInput.value = '';
+      outputContent.textContent = '';
+      outputStatus.textContent = '待機中';
+      updateCounter();
+      inspectorCard.style.display = 'none';
+    });
+
+    // Copy Output
+    copyOutputBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(outputContent.textContent);
+      showToast('出力をクリップボードにコピーしました！');
+    });
+
+    // Share URL
+    shareBtn.addEventListener('click', () => {
+      const code = codeInput.value;
+      const encoded = encodeURIComponent(code);
+      const url = `${window.location.origin}${window.location.pathname}#code=${encoded}`;
+      navigator.clipboard.writeText(url);
+      showToast('共有URLをコピーしました！🔗');
+    });
+
+    // Tweet / X Share
+    tweetBtn.addEventListener('click', () => {
+      const codePreview = codeInput.value.slice(0, 100);
+      const url = window.location.href;
+      const text = `難解プログラミング言語「Interrobang(‽)」で叫び声をコンパイルしました！\n\n${codePreview}\n...\n`;
+      const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}&hashtags=InterrobangLang,Esolang`;
+      window.open(tweetUrl, '_blank');
+    });
+
+    // Encoder Logic
+    document.querySelectorAll('input[name="enc-mode"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        customWordsGroup.style.display = (radio.value === 'custom') ? 'block' : 'none';
+      });
+    });
+
+    function doGenerate() {
+      playBeep(650, 'triangle', 0.08);
+      const text = encodeInput.value;
+      const mode = document.querySelector('input[name="enc-mode"]:checked').value;
+      let customWords = null;
+      if (mode === 'custom') {
+        customWords = customWordsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      const generated = Interrobang.encode(text, {
+        mode,
+        customWords,
+        fullWidth: true
+      });
+
+      encodeOutput.value = generated;
+    }
+
+    generateBtn.addEventListener('click', doGenerate);
+
+    transferToRunnerBtn.addEventListener('click', () => {
+      if (!encodeOutput.value) doGenerate();
+      codeInput.value = encodeOutput.value;
+      updateCounter();
+      // Switch tab to runner
+      tabBtns[0].click();
+      executeCode();
+      showToast('エディタにコードを転送して実行しました！');
+    });
+
+    copyGeneratedBtn.addEventListener('click', () => {
+      if (!encodeOutput.value) doGenerate();
+      navigator.clipboard.writeText(encodeOutput.value);
+      showToast('生成コードをコピーしました！');
+    });
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    // Initial load: parse URL hash
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.location.hash.startsWith('#code=')) {
+        try {
+          const raw = window.location.hash.slice(6);
+          const decoded = decodeURIComponent(raw);
+          codeInput.value = decoded;
+          updateCounter();
+          executeCode();
+        } catch {
+          codeInput.value = PRESETS.hello;
+          updateCounter();
+          executeCode();
+        }
+      } else {
+        codeInput.value = PRESETS.hello;
+        updateCounter();
+        executeCode();
+      }
+      doGenerate();
+    });
+  </script>
+</body>
+</html>

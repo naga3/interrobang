@@ -1,0 +1,28 @@
+{
+  "name": "interrobang-lang",
+  "version": "1.0.0",
+  "description": "The loudest esoteric programming language — driven purely by screams and punctuation (！=0, ？=1)",
+  "main": "interrobang.js",
+  "bin": {
+    "interrobang": "./cli.js"
+  },
+  "scripts": {
+    "test": "node test.js",
+    "start": "npx serve ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naga3/interrobang.git"
+  },
+  "keywords": [
+    "esoteric-language",
+    "esolang",
+    "interrobang",
+    "programming-language",
+    "japanese",
+    "binary",
+    "screaming"
+  ],
+  "author": "naga3",
+  "license": "MIT"
+}
