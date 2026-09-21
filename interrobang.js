@@ -5,7 +5,7 @@
  * - '!' / '！' = 0
  * - '?' / '？' = 1
  * - All other characters are ignored (screams, comments, whitespace, punctuation)
- * - Each line outputs one character corresponding to the binary code point
+ * - Each line outputs one character corresponding to the binary data (UTF-8 / Unicode)
  */
 
 const SCREAM_WORDS = [
@@ -16,18 +16,58 @@ const SCREAM_WORDS = [
 
 /**
  * Executes an Interrobang program and returns the decoded string.
+ * Supports UTF-8 multibyte lines, 1-byte-per-line UTF-8 streams, and Unicode code points.
  * @param {string} source - Source code
+ * @param {Object} [options]
+ * @param {'auto'|'utf-8'|'codepoint'} [options.encoding='auto']
  * @returns {string} Decoded output
  */
-function run(source) {
+function run(source, options = {}) {
+  const encoding = options.encoding || 'auto';
   const inspection = inspect(source);
+  if (inspection.length === 0) return '';
+
+  if (encoding === 'codepoint') {
+    return inspection.map(item => item.char).join('');
+  }
+
+  // Check if all lines are multiples of 8 bits
+  const allMultipleOf8 = inspection.every(item => item.bits.length % 8 === 0);
+  if (allMultipleOf8) {
+    const allBytes = [];
+    inspection.forEach(item => {
+      for (let i = 0; i < item.bits.length; i += 8) {
+        allBytes.push(parseInt(item.bits.slice(i, i + 8), 2));
+      }
+    });
+
+    try {
+      const decoder = new TextDecoder('utf-8', { fatal: true });
+      return decoder.decode(new Uint8Array(allBytes));
+    } catch {
+      // Fallback if not valid UTF-8
+    }
+  }
+
+  // Fallback to per-line decoded chars
   return inspection.map(item => item.char).join('');
 }
 
 /**
  * Disassembles and inspects each line of source code.
  * @param {string} source - Source code
- * @returns {Array<{lineNumber: number, raw: string, bits: string, codePoint: number|null, char: string}>}
+ * @returns {Array<{
+ *   lineNumber: number,
+ *   raw: string,
+ *   bits: string,
+ *   bitLength: number,
+ *   bytes: number[]|null,
+ *   hex: string,
+ *   codePoint: number|null,
+ *   char: string,
+ *   encoding: string,
+ *   valid: boolean
+ * }>}
  */
 function inspect(source) {
   if (typeof source !== 'string') return [];
@@ -45,32 +85,63 @@ function inspect(source) {
     }
 
     if (bits.length > 0) {
-      try {
-        const codePoint = parseInt(bits, 2);
-        let char = '';
-        if (!isNaN(codePoint) && codePoint >= 0 && codePoint <= 0x10FFFF) {
-          char = String.fromCodePoint(codePoint);
-        } else {
+      let char = '';
+      let bytes = null;
+      let hex = '';
+      let codePoint = null;
+      let encoding = 'codepoint';
+      let valid = true;
+
+      // Check if bits length is multiple of 8 (UTF-8 candidate)
+      if (bits.length % 8 === 0) {
+        bytes = [];
+        for (let i = 0; i < bits.length; i += 8) {
+          bytes.push(parseInt(bits.slice(i, i + 8), 2));
+        }
+        hex = bytes.map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+
+        // Try single-line UTF-8 decoding
+        try {
+          const utf8Dec = new TextDecoder('utf-8', { fatal: true });
+          char = utf8Dec.decode(new Uint8Array(bytes));
+          encoding = 'utf-8';
+        } catch {
+          // Could be a partial byte in a stream, or raw codepoint
           char = '';
         }
-        result.push({
-          lineNumber: idx + 1,
-          raw,
-          bits,
-          codePoint,
-          char,
-          valid: true
-        });
-      } catch {
-        result.push({
-          lineNumber: idx + 1,
-          raw,
-          bits,
-          codePoint: null,
-          char: '',
-          valid: false
-        });
       }
+
+      // If UTF-8 didn't yield a character, fallback to codepoint
+      if (!char) {
+        try {
+          codePoint = parseInt(bits, 2);
+          if (!isNaN(codePoint) && codePoint >= 0 && codePoint <= 0x10FFFF) {
+            char = String.fromCodePoint(codePoint);
+            if (!hex) {
+              hex = '0x' + codePoint.toString(16).toUpperCase();
+            }
+          } else {
+            valid = false;
+          }
+        } catch {
+          valid = false;
+        }
+      } else if (codePoint === null && char.length > 0) {
+        codePoint = char.codePointAt(0);
+      }
+
+      result.push({
+        lineNumber: idx + 1,
+        raw,
+        bits,
+        bitLength: bits.length,
+        bytes,
+        hex,
+        codePoint,
+        char,
+        encoding,
+        valid
+      });
     }
   });
 
@@ -80,14 +151,18 @@ function inspect(source) {
 /**
  * Encodes plain text into Interrobang code.
  * @param {string} text - Plain text to encode
- * @param {Object} options
- * @param {'scream'|'pure'|'stealth'|'custom'} options.mode - Encoding style
+ * @param {Object} [options]
+ * @param {'scream'|'pure'|'stealth'|'custom'} [options.mode='scream'] - Encoding style
+ * @param {'utf-8'|'codepoint'} [options.encoding='utf-8'] - Character encoding standard
+ * @param {'char'|'byte'} [options.unit='char'] - 'char' = 1 character per line (multibyte UTF-8), 'byte' = 1 byte per line (8-bit)
  * @param {string[]} [options.customWords] - Custom filler words
  * @param {boolean} [options.fullWidth=true] - Use full-width ！ and ？
  * @returns {string} Interrobang source code
  */
 function encode(text, options = {}) {
   const mode = options.mode || 'scream';
+  const encoding = options.encoding || 'utf-8';
+  const unit = options.unit || 'char';
   const fullWidth = options.fullWidth !== false;
   const zero = fullWidth ? '！' : '!';
   const one = fullWidth ? '？' : '?';
@@ -95,35 +170,58 @@ function encode(text, options = {}) {
     ? options.customWords
     : SCREAM_WORDS;
 
-  // Split into Unicode code points correctly
-  const characters = Array.from(text);
   const lines = [];
 
-  characters.forEach(ch => {
-    const codePoint = ch.codePointAt(0);
-    let binary = codePoint.toString(2);
-    // Pad ASCII to 8 bits for consistency
-    if (codePoint < 128) {
-      binary = binary.padStart(8, '0');
-    }
+  if (encoding === 'utf-8') {
+    const textEncoder = new TextEncoder();
 
-    // Convert binary to symbols
-    const symbols = Array.from(binary).map(b => (b === '0' ? zero : one));
-
-    if (mode === 'pure') {
-      lines.push(symbols.join(''));
-    } else if (mode === 'scream') {
-      lines.push(formatScreamLine(symbols, words));
-    } else if (mode === 'stealth') {
-      lines.push(formatStealthLine(symbols));
-    } else if (mode === 'custom') {
-      lines.push(formatScreamLine(symbols, words));
+    if (unit === 'byte') {
+      // 1 byte (8-bit) per line
+      const bytes = textEncoder.encode(text);
+      bytes.forEach(b => {
+        const binary = b.toString(2).padStart(8, '0');
+        const symbols = Array.from(binary).map(bit => (bit === '0' ? zero : one));
+        lines.push(formatLine(symbols, mode, words));
+      });
     } else {
-      lines.push(symbols.join(''));
+      // 1 character per line (each line has the full UTF-8 byte sequence)
+      for (const ch of Array.from(text)) {
+        const bytes = textEncoder.encode(ch);
+        const binary = Array.from(bytes)
+          .map(b => b.toString(2).padStart(8, '0'))
+          .join('');
+        const symbols = Array.from(binary).map(bit => (bit === '0' ? zero : one));
+        lines.push(formatLine(symbols, mode, words));
+      }
     }
-  });
+  } else {
+    // Unicode Code Point mode
+    for (const ch of Array.from(text)) {
+      const codePoint = ch.codePointAt(0);
+      let binary = codePoint.toString(2);
+      if (codePoint < 128) {
+        binary = binary.padStart(8, '0');
+      }
+      const symbols = Array.from(binary).map(bit => (bit === '0' ? zero : one));
+      lines.push(formatLine(symbols, mode, words));
+    }
+  }
 
   return lines.join('\n');
+}
+
+/**
+ * Helper to format symbols according to mode
+ */
+function formatLine(symbols, mode, words) {
+  if (mode === 'pure') {
+    return symbols.join('');
+  } else if (mode === 'scream' || mode === 'custom') {
+    return formatScreamLine(symbols, words);
+  } else if (mode === 'stealth') {
+    return formatStealthLine(symbols);
+  }
+  return symbols.join('');
 }
 
 /**
@@ -135,7 +233,6 @@ function formatScreamLine(symbols, words) {
 
   let i = 0;
   while (i < symbols.length) {
-    // Take a chunk of 1 to 3 symbols
     const chunkSize = Math.min(symbols.length - i, Math.floor(Math.random() * 3) + 1);
     const chunk = symbols.slice(i, i + chunkSize).join('');
     line += chunk;

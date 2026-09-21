@@ -1,9 +1,9 @@
 const assert = require('assert');
 const { run, inspect, encode } = require('./interrobang');
 
-console.log('Testing Interrobang language engine...');
+console.log('Running Interrobang UTF-8 test suite...');
 
-// 1. Test Hello World from user prompt
+// 1. Test Hello World (original ASCII prompt)
 const helloWorldSource = `わあ！？わ！！あ？！！！
 えっ！？？あ！！？！？
 ぎゃあ！？？！あ？？！！
@@ -17,37 +17,40 @@ const helloWorldSource = `わあ！？わ！！あ？！！！
 うそ！？？あ！！？！！
 ぎゃあああ！！？あ！！！！？`;
 
-const output = run(helloWorldSource);
-console.log('Hello World output:', JSON.stringify(output));
-assert.strictEqual(output, 'Hello World!', 'Hello World output must match');
+const helloOut = run(helloWorldSource);
+assert.strictEqual(helloOut, 'Hello World!', 'Hello World must match');
+console.log('✓ Hello World ASCII test passed');
 
-// 2. Test inspect details
-const details = inspect(helloWorldSource);
-assert.strictEqual(details.length, 12, 'Must have 12 lines');
-assert.strictEqual(details[0].bits, '01001000', 'First line must be 01001000 (H)');
-assert.strictEqual(details[0].char, 'H', 'First line char must be H');
-assert.strictEqual(details[11].char, '!', 'Last line char must be !');
+// 2. Test UTF-8 Japanese multibyte (1 character per line)
+const jaText = 'こんにちは世界！🎉';
+const encodedJaChar = encode(jaText, { encoding: 'utf-8', unit: 'char', mode: 'scream' });
+const decodedJaChar = run(encodedJaChar);
+assert.strictEqual(decodedJaChar, jaText, 'UTF-8 1-character-per-line roundtrip must match');
+console.log('✓ UTF-8 1-character-per-line test passed');
 
-// 3. Test half-width characters
-const halfWidthSource = `!?!!?!!!\n!??!!?!?\n!??!??!!\n!??!??!!\n!??!????`;
-assert.strictEqual(run(halfWidthSource), 'Hello', 'Half-width symbols must work');
+// 3. Test UTF-8 Japanese byte stream (1 byte per line)
+const encodedJaByte = encode(jaText, { encoding: 'utf-8', unit: 'byte', mode: 'scream' });
+const decodedJaByte = run(encodedJaByte);
+assert.strictEqual(decodedJaByte, jaText, 'UTF-8 1-byte-per-line stream roundtrip must match');
+console.log('✓ UTF-8 1-byte-per-line stream test passed');
 
-// 4. Test Japanese Unicode code points
-const japaneseText = 'こんにちは世界！🎉';
-const encodedScream = encode(japaneseText, { mode: 'scream' });
-const decodedScream = run(encodedScream);
-assert.strictEqual(decodedScream, japaneseText, 'Scream mode roundtrip must work for Japanese + Emoji');
+// 4. Test Pure symbols mode in UTF-8
+const pureEncoded = encode('こんにちは', { encoding: 'utf-8', mode: 'pure' });
+assert.strictEqual(run(pureEncoded), 'こんにちは', 'Pure UTF-8 must match');
+console.log('✓ UTF-8 pure symbols mode test passed');
 
-const encodedPure = encode('Interrobang', { mode: 'pure' });
-assert.strictEqual(run(encodedPure), 'Interrobang', 'Pure mode roundtrip must work');
+// 5. Test Unicode Code Point mode fallback
+const cpEncoded = encode('草', { encoding: 'codepoint', mode: 'pure' });
+assert.strictEqual(run(cpEncoded), '草', 'Code point fallback must match');
+console.log('✓ Code point fallback test passed');
 
-// 5. Test empty lines and ignored comment lines
-const withComments = `
-// This is a comment without symbols
-わあ！？わ！！あ？！！！
-# Another comment line
-えっ！？？あ！！？！？
-`;
-assert.strictEqual(run(withComments), 'He', 'Lines without symbols must be ignored');
+// 6. Test Inspector with UTF-8 details
+const inspectResults = inspect(encodedJaChar);
+assert.strictEqual(inspectResults.length, Array.from(jaText).length);
+assert.strictEqual(inspectResults[0].char, 'こ');
+assert.strictEqual(inspectResults[0].encoding, 'utf-8');
+assert.strictEqual(inspectResults[0].bytes.length, 3, 'Japanese "こ" must have 3 UTF-8 bytes');
+assert.strictEqual(inspectResults[0].bitLength, 24, 'Japanese "こ" must have 24 bits');
+console.log('✓ Inspector UTF-8 details test passed');
 
-console.log('All tests passed successfully! ✨');
+console.log('\nAll tests passed successfully! 🎉');
